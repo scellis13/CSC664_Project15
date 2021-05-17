@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initialscale=1.0">
+	<meta http-equiv="X-UA-Compatible" content="ie=edge">
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+	<link rel="stylesheet" href="/css/index.css">
+	<title>Text Analysis</title>
+	<script>
+
+		
+		function setSynset(option) {
+			document.getElementById("synsetId").value = option
+			
+			document.getElementById("dropdownMenuButton").innerHTML = "<b>Synset:</b> " + option
+			var elements = document.getElementsByClassName("radiofilter")
+				
+			if(option == 'None'){
+				document.getElementById("radio1").checked = true
+				document.getElementById("radio4").checked = true
+				document.getElementById("tokenChoice").value = 0
+				document.getElementById("searchQueryChoice").value = 0
+				for(var i = 0; i < elements.length; i++){
+						elements[i].disabled = true;
+						
+				}
+			} else {
+				for(var i = 0; i < elements.length; i++){
+						elements[i].disabled = false;
+				}
+			}
+		}
+		
+		function getTotalCounts(){
+			var elements = document.getElementsByClassName("main_word_element")
+			var max_count = parseInt(elements[0].value)
+			var max_element = elements[0]
+
+			for(var i = 1; i < elements.length; i++){
+				if(parseInt(elements[i].value) > max_count) {
+					max_count = elements[i].value
+					max_element = elements[i]
+				}
+			}
+			
+			for(var i = 0; i < elements.length; i++){
+				numString = ((parseInt(elements[i].value)/parseInt(max_count))*100).toString()
+				elements[i].style.width = numString+"%"
+			}
+		}
+		
+		function setSearchQueryChoice(option){
+			switch (option){
+				case 'synset':
+					document.getElementById("searchQueryChoice").value = 1
+					break;
+				case 'both':
+					document.getElementById("searchQueryChoice").value = 2
+					break;
+				default:
+					document.getElementById("searchQueryChoice").value = 0
+			}
+		}
+		
+		function setTokenChoice(option){
+			switch (option){
+				case 'synset':
+					document.getElementById("tokenChoice").value = 1
+					break;
+				case 'both':
+					document.getElementById("tokenChoice").value = 2
+					break;
+				default:
+					document.getElementById("tokenChoice").value = 0
+			}
+		}
+		
+		function setRadioOptions(){
+			var synset_option = <%- JSON.stringify(synsetOption) %>
+			var searchQueryChoice = parseInt(<%- JSON.stringify(searchQueryChoice) %>)
+			var tokenChoice = parseInt(<%- JSON.stringify(tokenChoice) %>)
+			var elements = document.getElementsByClassName("radiofilter")
+			for(var i = 0; i < elements.length; i++){
+				if(synset_option == 'None') {
+					elements[i].disabled = true
+				}
+				elements[i].checked = false
+			}
+			
+			switch (searchQueryChoice){
+				case 1:
+					document.getElementById("radio2").checked = true
+					break;
+				case 2:
+					document.getElementById("radio3").checked = true
+					break;
+				default:
+					document.getElementById("radio1").checked = true
+			}
+			
+			
+			switch (tokenChoice){
+				case 1:
+					document.getElementById("radio5").checked = true
+					break;
+				case 2:
+					document.getElementById("radio6").checked = true
+					break;
+				default:
+					document.getElementById("radio4").checked = true
+			}
+		}
+
+		function displayFrequencies(sortby){
+			document.getElementById("basic").value = 0
+			document.getElementById("idf").value = 0
+			document.getElementById("svd").value = 0
+			
+			var elements_idf = document.getElementsByClassName("p_idf")
+			for(var j = 0; j < elements_idf.length; j++){
+					if(elements_idf[j].style.display === "inline"){
+						elements_idf[j].style.display = "none"
+					}
+			}
+			switch(sortby){
+				case 'Inverse Document Frequency':
+					document.getElementById("idf").value = 1
+					for(var j = 0; j < elements_idf.length; j++){
+						elements_idf[j].style.display = "inline"
+					}
+					break;
+				case 'Singular Value Decomposition':
+					document.getElementById("svd").value = 1
+					break;
+				default:
+					document.getElementById("basic").value = 1
+			}
+			
+			
+		}
+
+	</script>
+</head>
+
+<body class="border p-3">
+	<div class="customcontainer d-flex flex-column justify-content-center w-100 h-100">
+		<img src="/images/web_logo.png" class="w-100 p-1 mb-3" />
+		
+		<form action="/queryresult" method="POST" class="w-100" name="form" id="form">
+			<input id="synsetId" name="synsetOption" type="hidden" value="<%= synsetOption %>">
+			<input id="searchQueryChoice" name="searchQueryChoice" type="hidden" value=<%= searchQueryChoice %>>
+			<input id="tokenChoice" name="tokenChoice" type="hidden" value=<%= tokenChoice %>>
+			<div class="d-flex flex-row">
+				<div class="input-group p-0">
+					<input type="text" name="query" value="<%= query %>" class="form-control mr-3" placeholder="Type your Query Here." aria-label="Recipient's username" aria-describedby="basic-addon2" required>
+					<button class="btn text-light bg-secondary btn-outline mr-1" type="action">Search</button>
+					<div class="dropdown">
+						
+						<button class="btn btn-warning dropdown-toggle" id="dropdownMenuButton" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+							<b>Synset:</b> <%=synsetOption%>
+						</button>
+						<div class="dropdown-menu" arialabelledby="dropdownMenuButton">
+							<a class="dropdown-item" onclick="setSynset('None');">Default Query</a>
+							<a class="dropdown-item" onclick="setSynset('Hypernyms');">Hypernyms (Abstract)</a>
+							<a class="dropdown-item" onclick="setSynset('Hyponyms');">Hyponyms (Specific)</a>
+							<a class="dropdown-item" onclick="setSynset('Holonyms');">Holonyms (Whole)</a>
+							<a class="dropdown-item" onclick="setSynset('Meronyms');">Meronyms (Part)</a>
+							<a class="dropdown-item" onclick="setSynset('All');">Include All Synsets</a>
+						</div>
+					</div>
+				</div>
+			</div>
+			
+			<div class="radioButtonRows">
+			
+				<div class="radioButtonRow d-flex flex-row w-100 m-0 p-0 justify-content-end">
+					<div class="radioDiv">
+						<div class="form-check form-check-inline">
+							<label class="form-check-label radioLabel"><b>Query Handling:</b></label>
+						</div>
+						<div class="form-check form-check-inline">
+							<input class="form-check-input radiofilter" type="radio" name="searchRadioGroup" id="radio1" onclick="setSearchQueryChoice('default');" checked>
+							<label class="form-check-label choiceLabel" for="radio1">Original Query Only</label>
+						</div>
+						<div class="form-check form-check-inline">
+							<input class="form-check-input radiofilter" type="radio" name="searchRadioGroup" id="radio2" onclick="setSearchQueryChoice('synset');">
+							<label class="form-check-label choiceLabel" for="radio2">New Synset Query Only</label>
+						</div>
+						<div class="form-check form-check-inline">
+							<input class="form-check-input radiofilter" type="radio" name="searchRadioGroup" id="radio3" onclick="setSearchQueryChoice('both');">
+							<label class="form-check-label choiceLabel" for="radio3">Combined Query</label>
+						</div>
+					</div>
+				</div>
+				
+				<div class="radioButtonRow d-flex flex-row w-100 m-0 p-0 justify-content-end">
+					<div class="radioDiv radioDiv2">
+						<div class="form-check form-check-inline">
+							<label class="form-check-label radioLabel"><b>Token/Filter Handling:</b></label>
+						</div>
+						<div class="form-check form-check-inline">
+							<input class="form-check-input radiofilter" type="radio" name="tokenRadioGroup" id="radio4" onclick="setTokenChoice('default');" checked>
+							<label class="form-check-label choiceLabel" for="radio4">Original Tokens Only</label>
+						</div>
+						<div class="form-check form-check-inline">
+							<input class="form-check-input radiofilter" type="radio" name="tokenRadioGroup" id="radio5" onclick="setTokenChoice('synset');">
+							<label class="form-check-label choiceLabel" for="radio5">New Synset Tokens Only</label>
+						</div>
+						<div class="form-check form-check-inline">
+							<input class="form-check-input radiofilter" type="radio" name="tokenRadioGroup" id="radio6" onclick="setTokenChoice('both');">
+							<label class="form-check-label choiceLabel" for="radio6">Combined Tokens</label>
+						</div>
+					</div>
+				</div>
+				<script>setRadioOptions();</script>
+			</div>
+			
+			
+			<div class="headerRow d-flex flex-row w-100 m-0 p-0">
+				<div class="btn-group btn-group-toggle" data-toggle="buttons">
+					<% if (sort_basic == 1) { %>
+						<label class="btn btn-secondary active sort_btn" onclick="displayFrequencies('Basic Term Frequency');">
+							<input type="radio" name="sort_basic" id="basic" value="<%= sort_basic %>" autocomplete="off" checked> Basic Term Frequency
+						</label>
+					<% } else { %>
+						<label class="btn btn-secondary sort_btn" onclick="displayFrequencies('Basic Term Frequency');">
+							<input type="radio" name="sort_basic" id="basic" value="<%= sort_basic %>" autocomplete="off"> Basic Term Frequency
+						</label>
+					<% } %>
+					
+					<% if (sort_idf == 1) { %>
+						<label class="btn btn-secondary active sort_btn" onclick="displayFrequencies('Inverse Document Frequency');" >
+							<input type="radio" name="sort_idf" id="idf" value="<%= sort_idf %>" autocomplete="off" checked> Inverse Document Frequency
+						</label>
+					<% } else { %>
+						<label class="btn btn-secondary sort_btn" onclick="displayFrequencies('Inverse Document Frequency');" >
+							<input type="radio" name="sort_idf" id="idf" value="<%= sort_idf %>" autocomplete="off"> Inverse Document Frequency
+						</label>
+					<% } %>
+					
+					<% if (sort_svd == 1) { %>
+						<label class="btn btn-secondary disabled sort_btn" onclick="displayFrequencies('Singular Value Decomposition');">
+							<input type="radio" name="sort_svd" id="svd" value="<%= sort_svd %>" autocomplete="off" checked> Singular Value Decomposition
+						</label>
+					<% } else { %>
+						<label class="btn btn-secondary disabled sort_btn" onclick="displayFrequencies('Singular Value Decomposition');">
+							<input type="radio" name="sort_svd" id="svd" value="<%= sort_svd %>" autocomplete="off" disabled> Singular Value Decomposition
+						</label>
+					<% } %>	
+						
+				</div>
+			</div>
+		</form>
+		
+		<div class="d-flex flex-row border rounded border-dark h-75 overflow-auto">
+			<div class="leftTable text-left p-3 border-right rounded-left border-dark bg-light overflow-auto" >
+				<div class="leftTableContainer container-fluid overflow-auto text-left">
+					<span style="color: red; font-weight: bold">(RED)</span> = TF*IDF Value. If the result is 0, they will not be displayed.
+					<hr>
+					<% for(var i = 0; i < urlCount; i++) { %>
+						<div class="row w-100 overflow-auto mt-3 mb-0">
+							<div class="col-md overflow-auto"><h5><%= i+1 %>. <%= queryDisplay[i][0].title %></h5></div>
+						</div>
+						<div class="row w-100 overflow-auto mt-0 ml-1">
+							<div class="col-md overflow-auto"><h6><a href="<%= queryDisplay[i][0].url %>"><%= queryDisplay[i][0].url %></a></h6></div>
+						</div>
+						<div class="row w-100 overflow-auto ml-2">
+							<% for(var j = 1; j < queryDisplay[i].length; j++) { %>
+								<div class="col-xs ml-2 mr-2">
+									<b><%= queryDisplay[i][j].word %></b>: <%= queryDisplay[i][j].count %>
+									
+										<% for(var k = 0; k < queryDisplay[urlCount].length; k++) { %>
+											<% if (queryDisplay[urlCount][k].main_word == queryDisplay[i][j].word) { %>
+												<% if ((queryDisplay[i][j].count*queryDisplay[urlCount][k].idf).toFixed(2) > 0) { %>
+													<% if (sort_idf == 1) { %> 
+														<span class="p_idf">(<%= (queryDisplay[i][j].count*queryDisplay[urlCount][k].idf).toFixed(2) %>)</span>
+													<% } else { %>
+														<span class="p_idf" style="display: none">(<%= (queryDisplay[i][j].count*queryDisplay[urlCount][k].idf).toFixed(2) %>)</span>
+													<% } %>	
+												<% } %>
+											<% } %>
+										<% } %>
+									
+								</div>
+							<% } %>
+							
+						</div>
+						<hr>
+					<% } %>
+					
+				</div>
+			</div>
+			<div class="rightTable text-center p-3 bg-secondary border border-warning">
+				<div class="container-fluid overflow-auto text-center">
+					<% if (urlCount > 0) { %>
+						<% for(var i = 0; i < queryDisplay[urlCount].length; i++) { %>
+							
+							<div class="row mb-2">
+								<div class="col-xs main_word_label mr-1">
+									<%= queryDisplay[urlCount][i].main_word %>
+								</div>
+								<div class="col-xs main_count_bar">
+									<option class="main_word_element" value=<%= queryDisplay[urlCount][i].total_count %>></option>
+								</div>
+								<div class="col-xs main_count_label">
+									<%= queryDisplay[urlCount][i].total_count %>
+								</div>
+							</div>
+							
+							
+						<% } %>
+						<script>getTotalCounts()</script>
+					<% } %>
+				
+				</div>
+			</div>
+		</div>
+		<div class="d-flex flex-row text-left">
+			<b>Sorted By: <%= sortedBy %></b>
+			<script>displayFrequencies(<%- JSON.stringify(sortedBy) %>);</script>
+		</div>
+	</div>
+	
+<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+
+</body>
+</html>
